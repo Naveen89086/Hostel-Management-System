@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # ──────────────────────────────────────────
+  # MongoDB Database
+  # ──────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: hostelhub-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=hostelhub
+    networks:
+      - hostelhub-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────
+  # Backend API Server
+  # ──────────────────────────────────────────
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: hostelhub-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/hostelhub
+      - JWT_SECRET=${JWT_SECRET:-hostelhub-super-secret-key-change-me}
+      - JWT_EXPIRES_IN=7d
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CLIENT_URL=http://localhost
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - hostelhub-network
+
+  # ──────────────────────────────────────────
+  # Frontend Client (Nginx)
+  # ──────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: hostelhub-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - hostelhub-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  hostelhub-network:
+    driver: bridge

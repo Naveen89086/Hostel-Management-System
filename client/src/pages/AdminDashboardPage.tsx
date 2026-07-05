@@ -30,8 +30,8 @@ export const AdminDashboardPage: React.FC = () => {
       // Fetch emergency alerts for the Admin Dashboard
       const reqRes = await requestService.getRequests({});
       if (reqRes.success) {
-        const emergencyReqs = (reqRes.data?.requests || []).filter(r => r.category === 'Emergency' || r.urgency === 'critical');
-        const formattedAlerts = emergencyReqs.map(req => {
+        const emergencyReqs = (reqRes.data || []).filter((r: import('../types').Request) => r.category === 'Emergency' || r.urgency === 'critical');
+        const formattedAlerts = emergencyReqs.map((req: import('../types').Request) => {
           const student = req.user as User;
           const dateObj = new Date(req.createdAt);
           const formattedTime = `${dateObj.toLocaleDateString('en-GB')}, ${dateObj.toLocaleTimeString('en-GB')}`;

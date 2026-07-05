@@ -32,9 +32,9 @@ export const WardenLeavesPage: React.FC = () => {
       const res = await requestService.getRequests({});
       if (res.success) {
         // Filter for Leave requests
-        const leaveReqs = (res.data?.requests || []).filter(r => r.category === 'Leave');
+        const leaveReqs = (res.data || []).filter((r: import('../types').Request) => r.category === 'Leave');
         
-        const mappedLeaves: LeaveRequest[] = leaveReqs.map(req => {
+        const mappedLeaves: LeaveRequest[] = leaveReqs.map((req: import('../types').Request) => {
           // Parse description which we formatted as "startDate|endDate|reason"
           const parts = req.description ? req.description.split('|') : [];
           const startDate = parts[0] || '-';

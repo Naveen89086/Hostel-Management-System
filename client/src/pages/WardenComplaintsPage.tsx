@@ -30,7 +30,7 @@ export const WardenComplaintsPage: React.FC = () => {
       setIsLoading(true);
       const res = await requestService.getRequests({});
       if (res.success) {
-        setComplaints(res.data?.requests || []);
+        setComplaints(res.data || []);
       }
     } catch {
       toast.error('Failed to load complaints');

@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
       textColor: 'text-blue-500',
       borderColor: 'border-blue-500',
       ringColor: 'focus:ring-blue-500',
-      defaultEmail: 'rahul@student.com',
+      defaultEmail: 'rahul@gmail.com',
       defaultPass: 'student123'
     },
     warden: {
@@ -74,7 +74,7 @@ export const LoginPage: React.FC = () => {
       textColor: 'text-purple-500',
       borderColor: 'border-purple-500',
       ringColor: 'focus:ring-purple-500',
-      defaultEmail: 'warden@hostelhub.com',
+      defaultEmail: 'warden@gmail.com',
       defaultPass: 'warden123'
     },
     admin: {
@@ -85,7 +85,7 @@ export const LoginPage: React.FC = () => {
       textColor: 'text-orange-500',
       borderColor: 'border-orange-500',
       ringColor: 'focus:ring-orange-500',
-      defaultEmail: 'admin@hostelhub.com',
+      defaultEmail: 'admin@gmail.com',
       defaultPass: 'admin123'
     }
   };

@@ -42,23 +42,23 @@ export const seedData = async (exitOnComplete: boolean = true) => {
     const studentPassword = await bcrypt.hash('student123', salt);
 
     const users = await User.insertMany([
-      { name: 'Admin User', email: 'admin@hostelhub.com', password: adminPassword, role: 'admin' },
-      { name: 'Warden Kumar', email: 'warden@hostelhub.com', password: wardenPassword, role: 'warden' },
-      { name: 'Rahul Sharma', email: 'rahul@student.com', password: studentPassword, role: 'student', department: 'Computer Science', year: 2 },
-      { name: 'Priya Patel', email: 'priya@student.com', password: studentPassword, role: 'student', department: 'Electronics', year: 3 },
-      { name: 'Amit Singh', email: 'amit@student.com', password: studentPassword, role: 'student', department: 'Mechanical', year: 1 },
-      { name: 'Neha Gupta', email: 'neha@student.com', password: studentPassword, role: 'student', department: 'Civil', year: 2 },
-      { name: 'Arjun Das', email: 'arjun@student.com', password: studentPassword, role: 'student', department: 'Computer Science', year: 4 },
+      { name: 'Admin User', email: 'admin@gmail.com', password: adminPassword, role: 'admin' },
+      { name: 'Warden Kumar', email: 'warden@gmail.com', password: wardenPassword, role: 'warden' },
+      { name: 'Rahul Sharma', email: 'rahul@gmail.com', password: studentPassword, role: 'student', department: 'Computer Science', year: 2 },
+      { name: 'Priya Patel', email: 'priya@gmail.com', password: studentPassword, role: 'student', department: 'Electronics', year: 3 },
+      { name: 'Amit Singh', email: 'amit@gmail.com', password: studentPassword, role: 'student', department: 'Mechanical', year: 1 },
+      { name: 'Neha Gupta', email: 'neha@gmail.com', password: studentPassword, role: 'student', department: 'Civil', year: 2 },
+      { name: 'Arjun Das', email: 'arjun@gmail.com', password: studentPassword, role: 'student', department: 'Computer Science', year: 4 },
     ]);
     console.log('Users created');
 
-    const rahulId = users.find(u => u.email === 'rahul@student.com')?._id;
-    const priyaId = users.find(u => u.email === 'priya@student.com')?._id;
-    const amitId = users.find(u => u.email === 'amit@student.com')?._id;
-    const nehaId = users.find(u => u.email === 'neha@student.com')?._id;
-    const arjunId = users.find(u => u.email === 'arjun@student.com')?._id;
-    const adminId = users.find(u => u.email === 'admin@hostelhub.com')?._id;
-    const wardenId = users.find(u => u.email === 'warden@hostelhub.com')?._id;
+    const rahulId = users.find(u => u.email === 'rahul@gmail.com')?._id;
+    const priyaId = users.find(u => u.email === 'priya@gmail.com')?._id;
+    const amitId = users.find(u => u.email === 'amit@gmail.com')?._id;
+    const nehaId = users.find(u => u.email === 'neha@gmail.com')?._id;
+    const arjunId = users.find(u => u.email === 'arjun@gmail.com')?._id;
+    const adminId = users.find(u => u.email === 'admin@gmail.com')?._id;
+    const wardenId = users.find(u => u.email === 'warden@gmail.com')?._id;
 
     // Create Rooms
     const roomsToCreate = [];

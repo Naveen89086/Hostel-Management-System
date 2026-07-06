@@ -27,7 +27,7 @@ initializeSocket(server);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.clientUrl,
+  origin: config.nodeEnv === 'production' ? config.clientUrl : true,
   credentials: true,
 }));
 app.use(cookieParser());

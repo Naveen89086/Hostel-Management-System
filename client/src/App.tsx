@@ -23,6 +23,7 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminRoomsPage } from './pages/AdminRoomsPage';
 import { AdminReportsPage } from './pages/AdminReportsPage';
+import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminWardensPage } from './pages/AdminWardensPage';
 import { WardenDashboardPage } from './pages/WardenDashboardPage';
 import { WardenComplaintsPage } from './pages/WardenComplaintsPage';
@@ -44,7 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children ? children : <Outlet />}</>;
@@ -59,10 +60,27 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
+};
+
+// Role-based Root Redirect Wrapper
+const RoleBasedRedirect = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950"><Spinner size="lg" /></div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (user.role === 'warden') return <Navigate to="/warden/dashboard" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 const App: React.FC = () => {
@@ -84,8 +102,8 @@ const App: React.FC = () => {
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
               <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
               
-              {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Redirect root based on role */}
+              <Route path="/" element={<RoleBasedRedirect />} />
 
               {/* Protected Routes inside MainLayout */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -105,6 +123,7 @@ const App: React.FC = () => {
                   <Route path="requests" element={<RequestsPage />} />
                   <Route path="notices" element={<NoticesPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
+                  <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>
 
                 {/* Warden Only Routes */}
@@ -119,7 +138,7 @@ const App: React.FC = () => {
               </Route>
               
               {/* Fallback */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<RoleBasedRedirect />} />
             </Routes>
           </BrowserRouter>
         </SocketProvider>

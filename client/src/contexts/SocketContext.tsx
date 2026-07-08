@@ -13,7 +13,7 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     let newSocket: Socket | null = null;
@@ -35,7 +35,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       // Global event listeners for notifications
       newSocket.on('request:updated', (data) => {
-        toast.success(`Request "${data.title}" updated to ${data.status}`);
+        // Notifications are now handled locally in the components (e.g., 'Problem Solved.')
       });
 
       newSocket.on('request:created', (data) => {
@@ -46,6 +46,13 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       newSocket.on('notice:posted', (data) => {
         toast.success(`New Notice: ${data.title}`, { icon: '📢' });
+      });
+
+      newSocket.on('system:maintenance', (data) => {
+        if (data.enabled && user.role !== 'admin') {
+          logout();
+          toast.error('The system is currently under maintenance. Please try again later.', { duration: 5000 });
+        }
       });
 
       setSocket(newSocket);

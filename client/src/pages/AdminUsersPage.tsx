@@ -114,7 +114,7 @@ export const AdminUsersPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post('/auth/register', {
+      const res = await api.post('/users', {
         name: formData.fullName,
         email: formData.emailId,
         password: formData.password,
@@ -127,7 +127,7 @@ export const AdminUsersPage: React.FC = () => {
       
       if (res.data?.success) {
         const newUser = {
-          _id: res.data.data?.user?._id || Math.random().toString(),
+          _id: res.data.data?._id || Math.random().toString(),
           name: formData.fullName,
           email: formData.emailId,
           role: 'student',

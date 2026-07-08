@@ -67,7 +67,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
     { to: '/warden/complaints', icon: ClipboardList, label: 'Manage Complaints' },
     { to: '/warden/leaves', icon: CheckSquare, label: 'Approve Leaves' },
     { to: '/warden/alerts', icon: AlertTriangle, label: 'Emergency Alerts' },
-    { to: '/warden/insights', icon: Lightbulb, label: 'AI Insights', highlight: true },
     { to: '/warden/reports', icon: FileText, label: 'Hostel Reports' },
   ];
 

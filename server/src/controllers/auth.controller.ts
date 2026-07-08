@@ -81,6 +81,12 @@ export const login = async (
       return next(new AppError('Invalid email or password', 401));
     }
 
+    // Check Maintenance Mode
+    const settings = await import('../models/Settings').then(m => m.default.findOne());
+    if (settings?.maintenanceMode && user.role !== 'admin') {
+      return next(new AppError('The system is currently under maintenance. Please try again later.', 403));
+    }
+
     // Compare passwords
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {

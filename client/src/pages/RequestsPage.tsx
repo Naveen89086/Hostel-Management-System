@@ -62,103 +62,107 @@ export const RequestsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white">Requests</h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1">Manage and track hostel issues</p>
-        </div>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6 animate-fade-in relative">
         
-        <button onClick={() => toast('New request form coming soon!')} className="btn-primary shrink-0 w-full sm:w-auto">
-          <Plus className="h-4 w-4" /> New Request
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex overflow-x-auto custom-scrollbar pb-2">
-        <div className="flex space-x-2 bg-surface-100 dark:bg-surface-800/50 p-1 rounded-xl">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-200 hover:bg-surface-200/50 dark:hover:bg-surface-700/50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:px-6 sm:py-4 rounded-2xl shadow-sm border border-slate-100">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Requests</h1>
+            <p className="text-slate-500 mt-1 text-sm font-medium">Manage and track hostel issues</p>
+          </div>
+          
+          <button onClick={() => toast('New request form coming soon!')} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 shadow-sm shrink-0 w-full sm:w-auto">
+            <Plus className="h-4 w-4" /> New Request
+          </button>
         </div>
-      </div>
 
-      {/* Request List */}
-      <div className="glass-card overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ) : requests.length > 0 ? (
-          <div className="divide-y divide-surface-200 dark:divide-surface-700/50 flex flex-col">
-            {requests.map(req => (
-              <div 
-                key={req._id}
-                onClick={() => navigate(`/requests/${req._id}`)}
-                className="p-5 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors cursor-pointer group flex flex-col sm:flex-row gap-4"
+        {/* Tabs */}
+        <div className="flex overflow-x-auto custom-scrollbar pb-2">
+          <div className="flex space-x-2 bg-slate-200/50 p-1 rounded-xl">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                }`}
               >
-                <div className="p-3 bg-surface-100 dark:bg-surface-800 rounded-xl text-surface-500 group-hover:text-primary-500 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 shrink-0 self-start transition-colors">
-                  <FileText className="h-6 w-6" />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-surface-900 dark:text-white truncate pr-4">
-                      {req.title}
-                    </h3>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={getStatusBadge(req.status)} className="capitalize text-xs">
-                        {req.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant={getUrgencyBadge(req.urgency)} className="capitalize text-xs">
-                        {req.urgency}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <p className="text-surface-600 dark:text-surface-400 text-sm line-clamp-2 mb-3">
-                    {req.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-surface-500 dark:text-surface-500">
-                    <span className="flex items-center gap-1 font-medium bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded">
-                      Type: <span className="capitalize text-surface-700 dark:text-surface-300">{req.type.replace('_', ' ')}</span>
-                    </span>
-                    {req.roomNumber && (
-                      <span className="flex items-center gap-1 font-medium bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded">
-                        Room: <span className="text-surface-700 dark:text-surface-300">{req.roomNumber}</span>
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      {new Date(req.createdAt).toLocaleDateString()} at {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {req.aiParsed && (
-                      <span className="flex items-center gap-1 text-primary-500 ml-auto">
-                        ✨ AI Created
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                {tab.label}
+              </button>
             ))}
           </div>
-        ) : (
-          <div className="p-12 text-center text-surface-500 flex flex-col items-center">
-            <div className="bg-surface-100 dark:bg-surface-800 p-4 rounded-full mb-4">
-              <FileText className="h-8 w-8 text-surface-400" />
+        </div>
+
+        {/* Request List */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Spinner size="lg" className="text-blue-500" /></div>
+          ) : requests.length > 0 ? (
+            <div className="divide-y divide-slate-100 flex flex-col">
+              {requests.map(req => (
+                <div 
+                  key={req._id}
+                  onClick={() => navigate(`/requests/${req._id}`)}
+                  className="p-5 sm:px-8 hover:bg-slate-50/50 transition-colors cursor-pointer group flex flex-col sm:flex-row gap-5"
+                >
+                  <div className="p-3 bg-slate-50 rounded-xl text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 shrink-0 self-start transition-colors border border-slate-100">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
+                      <h3 className="text-lg font-bold text-slate-800 truncate pr-4">
+                        {req.title}
+                      </h3>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={getStatusBadge(req.status)} className="capitalize text-xs font-bold">
+                          {req.status.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant={getUrgencyBadge(req.urgency)} className="capitalize text-xs font-bold">
+                          {req.urgency}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <p className="text-slate-500 text-sm line-clamp-2 mb-3">
+                      {req.description}
+                    </p>
+                    
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-400">
+                      <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                        Type: <span className="capitalize text-slate-700">{req.type.replace('_', ' ')}</span>
+                      </span>
+                      {req.roomNumber && (
+                        <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                          Room: <span className="text-slate-700">{req.roomNumber}</span>
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        {new Date(req.createdAt).toLocaleDateString()} at {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {req.aiParsed && (
+                        <span className="flex items-center gap-1 text-amber-500 ml-auto font-bold bg-amber-50 px-2 py-1 rounded border border-amber-100">
+                          ✨ AI Created
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <p className="text-lg font-medium text-surface-900 dark:text-white">No requests found</p>
-            <p className="text-sm mt-1">Try changing your filters or create a new request.</p>
-          </div>
-        )}
+          ) : (
+            <div className="p-12 text-center text-slate-400 flex flex-col items-center">
+              <div className="bg-slate-50 p-4 rounded-full mb-4">
+                <FileText className="h-8 w-8 text-slate-300" />
+              </div>
+              <p className="text-lg font-bold text-slate-600">No requests found</p>
+              <p className="text-sm mt-1 font-medium">Try changing your filters or create a new request.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

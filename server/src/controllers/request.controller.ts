@@ -4,6 +4,7 @@ import { AuthRequest } from '../types';
 import RequestModel from '../models/Request';
 import { AppError } from '../middleware/errorHandler';
 import { emitToUser, emitToRole } from '../sockets';
+import User from '../models/User';
 
 export const getRequests = async (
   req: AuthRequest,
@@ -29,7 +30,7 @@ export const getRequests = async (
 
     const [requests, total] = await Promise.all([
       RequestModel.find(filter)
-        .populate('user', 'name email')
+        .populate('user', 'name email roomNumber')
         .populate('assignedTo', 'name email')
         .skip(skip)
         .limit(limit)
@@ -91,14 +92,18 @@ export const createRequest = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userDoc = await User.findById(req.user!.id);
+    const roomNumber = req.body.roomNumber || userDoc?.roomNumber || undefined;
+
     const request = await RequestModel.create({
       ...req.body,
+      roomNumber,
       user: req.user!.id,
     });
 
     const populatedRequest = await RequestModel.findById(request._id).populate(
       'user',
-      'name email'
+      'name email roomNumber'
     );
 
     // Emit to wardens and admins
@@ -143,8 +148,10 @@ export const updateRequest = async (
       .populate('user', 'name email')
       .populate('assignedTo', 'name email');
 
-    // Emit to request owner
+    // Emit to request owner, wardens, and admins
     emitToUser(request.user.toString(), 'request:updated', updatedRequest);
+    emitToRole('warden', 'request:updated', updatedRequest);
+    emitToRole('admin', 'request:updated', updatedRequest);
 
     res.status(200).json({
       success: true,

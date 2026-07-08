@@ -1,15 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { Spinner } from '../components/ui/Spinner';
 import { Folder, Clock, CheckCircle, Building, ClipboardList, Check, Eye, X, AlertTriangle } from 'lucide-react';
 import * as requestService from '../services/request.service';
 import { Request, User } from '../types';
 import { toast } from 'react-hot-toast';
 
+import * as userService from '../services/user.service';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+const STATUS_COLORS = {
+  total: '#3B82F6',
+  resolved: '#22C55E',
+  pending: '#EAB308',
+  inProgress: '#F97316',
+  rejected: '#EF4444'
+};
+
+const COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4'];
+
 export const WardenDashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [isLoading, setIsLoading] = useState(true);
   const [allComplaints, setAllComplaints] = useState<Request[]>([]);
+  const [allStudents, setAllStudents] = useState<User[]>([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0 });
   const [selectedBlock, setSelectedBlock] = useState<'A' | 'B'>('A');
   const [selectedComplaint, setSelectedComplaint] = useState<Request | null>(null);
@@ -18,10 +36,38 @@ export const WardenDashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleEvent = () => fetchData(false);
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    socket.on('user:created', handleEvent);
+    socket.on('user:updated', handleEvent);
+    socket.on('user:deleted', handleEvent);
+
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+      socket.off('user:created', handleEvent);
+      socket.off('user:updated', handleEvent);
+      socket.off('user:deleted', handleEvent);
+    };
+  }, [socket]);
+
+  const fetchData = async (showLoading = true) => {
     try {
-      setIsLoading(true);
-      const res = await requestService.getRequests({});
+      if (showLoading) setIsLoading(true);
+      const [res, usersRes] = await Promise.all([
+        requestService.getRequests({}),
+        userService.getAllUsers({ role: 'student' })
+      ]);
+      
+      if (usersRes.success) {
+        // @ts-ignore
+        setAllStudents(usersRes.data?.users || usersRes.data || []);
+      }
+
       if (res.success) {
         // @ts-ignore
         const all = res.data?.requests || res.data || [];
@@ -55,7 +101,15 @@ export const WardenDashboardPage: React.FC = () => {
       if (res.success) {
         setAllComplaints(allComplaints.map(c => c._id === id ? { ...c, status: 'resolved' as const } : c));
         setStats(prev => ({ ...prev, pending: prev.pending - 1, resolved: prev.resolved + 1 }));
-        toast.success('Complaint resolved!');
+        toast.success('Problem Solved.', {
+          style: {
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            padding: '0',
+            borderRadius: '0'
+          }
+        });
       }
     } catch {
       toast.error('Failed to resolve complaint');
@@ -86,34 +140,42 @@ export const WardenDashboardPage: React.FC = () => {
     );
   }
 
-  // Chart data (mock for visual match)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  const submittedData = [12, 19, 15, 14, 9, 22];
-  const resolvedData = [10, 15, 14, 13, 8, 18];
-  const maxVal = 25;
-  const chartHeight = 200;
-  const chartWidth = 500;
-  const stepX = chartWidth / (months.length - 1);
+  // --- Data Preparation for Recharts ---
 
-  const toPoint = (values: number[], i: number) => {
-    const x = 40 + i * stepX;
-    const y = chartHeight - (values[i] / maxVal) * (chartHeight - 30) + 10;
-    return { x, y };
+  // 1. Monthly Complaint Trends
+  const getLast6Months = () => {
+    const result = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      result.push(d.toLocaleString('en-US', { month: 'short' }));
+    }
+    return result;
   };
 
-  const makePath = (values: number[]) => {
-    return values.map((_, i) => {
-      const { x, y } = toPoint(values, i);
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-  };
+  const months = getLast6Months();
+  const monthlyData = months.map(m => ({ 
+    name: m, 
+    Total: 0, 
+    Resolved: 0, 
+    Pending: 0, 
+    InProgress: 0, 
+    Rejected: 0 
+  }));
 
-  const makeAreaPath = (values: number[]) => {
-    const line = makePath(values);
-    const lastPt = toPoint(values, values.length - 1);
-    const firstPt = toPoint(values, 0);
-    return `${line} L ${lastPt.x} ${chartHeight} L ${firstPt.x} ${chartHeight} Z`;
-  };
+  allComplaints.forEach(r => {
+    const d = new Date(r.createdAt || Date.now());
+    const mStr = d.toLocaleString('en-US', { month: 'short' });
+    const idx = monthlyData.findIndex(m => m.name === mStr);
+    
+    if (idx !== -1) {
+      monthlyData[idx].Total++;
+      if (r.status === 'resolved') monthlyData[idx].Resolved++;
+      else if (r.status === 'pending') monthlyData[idx].Pending++;
+      else if (r.status === 'in_progress') monthlyData[idx].InProgress++;
+      else if (r.status === 'rejected') monthlyData[idx].Rejected++;
+    }
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
@@ -241,43 +303,44 @@ export const WardenDashboardPage: React.FC = () => {
           )}
         </div>
 
-        {/* Complaint Trends Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-6">Complaint Trends</h2>
-          <div className="flex items-center gap-6 mb-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-blue-500 inline-block"></span>
-              <span className="text-slate-500 font-medium">Complaints Submitted</span>
+        {/* --- ENTERPRISE ANALYTICS DASHBOARD --- */}
+        <div className="mt-10 mb-6">
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+            <h2 className="text-xl font-bold text-slate-800 mb-8 border-b border-slate-200 pb-3">Hostel-Wide Analytics (Last 6 Months)</h2>
+            <div className="flex-1 w-full">
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} allowDecimals={false} dx={-10} />
+                  
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: '16px', 
+                      border: '1px solid rgba(255, 255, 255, 0.2)', 
+                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(8px)',
+                      padding: '12px 16px'
+                    }} 
+                    itemStyle={{ fontWeight: 600 }}
+                  />
+                  
+                  <Legend 
+                    verticalAlign="top" 
+                    height={50} 
+                    iconType="circle" 
+                    wrapperStyle={{ fontSize: '13px', fontWeight: 500, paddingBottom: '20px' }} 
+                  />
+                  
+                  <Line type="monotone" dataKey="Total" stroke={STATUS_COLORS.total} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.total, strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="Resolved" stroke={STATUS_COLORS.resolved} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.resolved, strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="Pending" stroke={STATUS_COLORS.pending} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.pending, strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="InProgress" name="In Progress" stroke={STATUS_COLORS.inProgress} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.inProgress, strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="Rejected" stroke={STATUS_COLORS.rejected} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.rejected, strokeWidth: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-green-500 inline-block"></span>
-              <span className="text-slate-500 font-medium">Complaints Resolved</span>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <svg viewBox={`0 0 ${chartWidth + 80} ${chartHeight + 40}`} className="w-full max-w-2xl h-auto" style={{ minWidth: '400px' }}>
-              {[0, 5, 10, 15, 20, 25].map((val) => {
-                const y = chartHeight - (val / maxVal) * (chartHeight - 30) + 10;
-                return (
-                  <g key={val}>
-                    <text x="28" y={y + 4} textAnchor="end" className="text-xs fill-slate-400" fontSize="11">{val}</text>
-                    <line x1="40" y1={y} x2={chartWidth + 40} y2={y} stroke="#e2e8f0" strokeWidth="0.5" />
-                  </g>
-                );
-              })}
-              <path d={makeAreaPath(submittedData)} fill="url(#blueGradDash)" opacity="0.15" />
-              <path d={makePath(submittedData)} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d={makePath(resolvedData)} fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              {submittedData.map((_, i) => { const { x, y } = toPoint(submittedData, i); return <circle key={`s${i}`} cx={x} cy={y} r="4" fill="#3b82f6" stroke="white" strokeWidth="2" />; })}
-              {resolvedData.map((_, i) => { const { x, y } = toPoint(resolvedData, i); return <circle key={`r${i}`} cx={x} cy={y} r="4" fill="#22c55e" stroke="white" strokeWidth="2" />; })}
-              {months.map((m, i) => { const { x } = toPoint(submittedData, i); return <text key={m} x={x} y={chartHeight + 25} textAnchor="middle" className="text-xs fill-slate-400" fontSize="11">{m}</text>; })}
-              <defs>
-                <linearGradient id="blueGradDash" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-            </svg>
           </div>
         </div>
 

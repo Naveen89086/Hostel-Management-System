@@ -30,7 +30,10 @@ export const WardenComplaintsPage: React.FC = () => {
       setIsLoading(true);
       const res = await requestService.getRequests({});
       if (res.success) {
-        setComplaints(res.data || []);
+        // @ts-ignore
+        const all = res.data?.requests || res.data || [];
+        const complaintsOnly = all.filter((r: import('../types').Request) => r.category !== 'Leave' && r.category !== 'Emergency' && r.urgency !== 'critical');
+        setComplaints(complaintsOnly);
       }
     } catch {
       toast.error('Failed to load complaints');
@@ -67,7 +70,15 @@ export const WardenComplaintsPage: React.FC = () => {
       const res = await requestService.updateRequest(id, { status: 'resolved' });
       if (res.success) {
         setComplaints(complaints.map(c => c._id === id ? { ...c, status: 'resolved' as const } : c));
-        toast.success('Complaint resolved successfully!');
+        toast.success('Problem Solved.', {
+          style: {
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            padding: '0',
+            borderRadius: '0'
+          }
+        });
       }
     } catch {
       toast.error('Failed to resolve complaint');

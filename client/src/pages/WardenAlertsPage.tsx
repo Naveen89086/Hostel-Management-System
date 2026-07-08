@@ -30,7 +30,9 @@ export const WardenAlertsPage: React.FC = () => {
       setIsLoading(true);
       const res = await requestService.getRequests({});
       if (res.success) {
-        const emergencyReqs = (res.data || []).filter((r: import('../types').Request) => r.category === 'Emergency' || r.urgency === 'critical');
+        // @ts-ignore
+        const all = res.data?.requests || res.data || [];
+        const emergencyReqs = all.filter((r: import('../types').Request) => r.category === 'Emergency' || r.urgency === 'critical');
         
         const mappedAlerts: Alert[] = emergencyReqs.map((req: import('../types').Request) => {
           const student = req.user as User;

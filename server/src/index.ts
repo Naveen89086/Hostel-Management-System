@@ -17,6 +17,7 @@ import noticeRoutes from './routes/notice.routes';
 import chatRoutes from './routes/chat.routes';
 import userRoutes from './routes/user.routes';
 import reportRoutes from './routes/report.routes';
+import settingsRoutes from './routes/settings.routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +43,7 @@ app.use('/api/notices', noticeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

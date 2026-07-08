@@ -26,7 +26,7 @@ export const ChatPage: React.FC = () => {
     try {
       const res = await chatService.getChatHistory();
       if (res.success && res.data) {
-        const historyMessages = res.data || [];
+        const historyMessages = (res.data as any).messages || [];
         if (historyMessages.length === 0) {
           // Add initial welcome message locally if history is empty
           setMessages([{

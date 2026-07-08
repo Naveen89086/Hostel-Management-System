@@ -14,35 +14,45 @@ export interface ParsedRequest {
 
 const groq = new Groq({ apiKey: config.groqApiKey });
 
-const SYSTEM_PROMPT = `
+export const parseHostelRequest = async (
+  userMessage: string, 
+  role: string = 'student', 
+  contextData: string = '', 
+  chatHistory: { role: 'user' | 'assistant', content: string }[] = []
+): Promise<ParsedRequest> => {
+  const SYSTEM_PROMPT = `
 You are the AI Hostel Management Agent for 'HostelHub'. 
-Your job is to read the user's message and determine their intent. You MUST respond in pure JSON format matching this schema:
+You are currently talking to a user with the role: ${role.toUpperCase()}.
+
+Here is the real-time database context for this user. You MUST use this data to answer their questions accurately:
+${contextData}
+
+Your job is to read the user's message, understand the conversational history, and determine their intent. You MUST respond in pure JSON format matching this schema:
 {
   "type": "room_allocation" | "room_change" | "maintenance" | "complaint" | "vacate" | "general",
   "title": "A short 3-5 word title of their intent",
   "category": "Plumbing, Electrical, General, Cleaning, Leave, etc.",
   "urgency": "low" | "medium" | "high" | "critical",
-  "isActionable": boolean (true if they are asking you to perform an action or if they need to be redirected to a form, false if it's just a general question),
-  "friendlyResponse": "Your conversational, helpful response to the user. Guide them to the correct dashboard page if they need to perform an action."
+  "isActionable": boolean (true if they are asking you to perform an action or if they need to be redirected to a form, false if it's just a general question or greeting),
+  "friendlyResponse": "Your conversational, helpful response to the user. If they asked a question about stats, their room, or requests, answer it directly using the context provided."
 }
 
 Context for friendly responses:
 - Mess timings: Breakfast 7:30-9AM, Lunch 12:30-2PM, Dinner 7-9PM.
-- Leave: Guide them to the 'Apply Leave' page.
-- Complaint: Guide them to 'Complaint Management -> New Complaint'.
-- Room change: Guide them to 'Room Change Request'.
-- If the user asks something unrelated to hostel management, politely decline to answer and set type to "general".
-- Always answer intelligently and helpfully.
+- If the user asks something unrelated to hostel management, politely decline to answer and set type to "general", isActionable to false.
+- ALWAYS be helpful and conversational.
 `;
 
-export const parseHostelRequest = async (userMessage: string, role: string = 'student'): Promise<ParsedRequest> => {
   try {
+    const messages: any[] = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...chatHistory,
+      { role: 'user', content: userMessage }
+    ];
+
     const response = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `User Role: ${role}\nUser Message: "${userMessage}"` }
-      ],
-      model: 'llama3-8b-8192',
+      messages,
+      model: 'llama-3.1-8b-instant',
       temperature: 0.1,
       response_format: { type: 'json_object' }
     });
@@ -59,7 +69,7 @@ export const parseHostelRequest = async (userMessage: string, role: string = 'st
         category: parsedData.category || null,
         urgency: parsedData.urgency || 'low',
         isActionable: parsedData.isActionable || false,
-        friendlyResponse: parsedData.friendlyResponse || "I can help with that! Please navigate to the appropriate section in your dashboard."
+        friendlyResponse: parsedData.friendlyResponse || "I can help with that!"
       };
     }
   } catch (error) {

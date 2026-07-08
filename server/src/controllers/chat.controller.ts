@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import ChatMessage from '../models/ChatMessage';
 import RequestModel from '../models/Request';
+import User from '../models/User';
 import { parseHostelRequest } from '../services/gemini.service';
 import { AppError } from '../middleware/errorHandler';
 import { emitToRole } from '../sockets';
@@ -22,6 +23,39 @@ export const sendMessage = async (
       return next(new AppError('Message is required', 400));
     }
 
+    // Fetch context data based on role
+    let contextString = '';
+    let studentRoom = '';
+    if (req.user!.role === 'admin' || req.user!.role === 'warden') {
+      const [totalStudents, pendingComplaints, activeAlerts, pendingLeaves] = await Promise.all([
+        User.countDocuments({ role: 'student' }),
+        RequestModel.countDocuments({ status: { $in: ['pending', 'in_progress'] }, category: { $nin: ['Emergency', 'Leave'] } }),
+        RequestModel.countDocuments({ status: { $ne: 'resolved' }, $or: [{ category: 'Emergency' }, { urgency: 'critical' }] }),
+        RequestModel.countDocuments({ status: 'pending', category: 'Leave' })
+      ]);
+      contextString = `DASHBOARD STATS: Total Students: ${totalStudents} | Pending Complaints: ${pendingComplaints} | Active Emergency Alerts: ${activeAlerts} | Pending Leave Requests: ${pendingLeaves}. Share these exact numbers if asked about stats.`;
+    } else {
+      const userDoc = await User.findById(req.user!.id);
+      studentRoom = userDoc?.roomNumber || '';
+      const roomNum = studentRoom || 'Not assigned';
+      const myRequests = await RequestModel.find({ user: req.user!.id, status: { $ne: 'resolved' } }).select('title category status').limit(5);
+      
+      const requestList = myRequests.map(r => `${r.title} (${r.category}) - ${r.status}`).join(', ');
+      contextString = `USER PROFILE: Room Number: ${roomNum}. ACTIVE REQUESTS/LEAVES: ${requestList || 'None'}. Share these details if asked about their room or status.`;
+    }
+
+    // Fetch conversation history
+    const history = await ChatMessage.find({ user: req.user!.id })
+      .sort({ createdAt: -1 })
+      .limit(8);
+      
+    const chatHistory = history.reverse().map(msg => ({
+      role: msg.sender === 'ai' ? 'assistant' : 'user',
+      content: msg.message
+    }));
+
+    // Save user message (after fetching history so it doesn't duplicate the current message if we change order, but we can just save it first, wait, if we saved it first, it would be in history. Let's save it after fetching history to keep history strictly previous messages).
+    
     // Save user message
     const userMessage = await ChatMessage.create({
       user: req.user!.id,
@@ -30,7 +64,7 @@ export const sendMessage = async (
     });
 
     // Parse with AI
-    const parsed = await parseHostelRequest(message.trim(), req.user!.role);
+    const parsed = await parseHostelRequest(message.trim(), req.user!.role, contextString, chatHistory);
 
     let createdRequest = null;
 
@@ -41,7 +75,7 @@ export const sendMessage = async (
         type: parsed.type,
         title: parsed.title,
         description: parsed.description,
-        roomNumber: parsed.roomNumber || undefined,
+        roomNumber: parsed.roomNumber || studentRoom || undefined,
         category: parsed.category || undefined,
         urgency: parsed.urgency,
         aiParsed: true,
@@ -51,7 +85,7 @@ export const sendMessage = async (
       // Emit to wardens and admins
       const populatedRequest = await RequestModel.findById(
         createdRequest._id
-      ).populate('user', 'name email');
+      ).populate('user', 'name email roomNumber');
       emitToRole('warden', 'request:created', populatedRequest);
       emitToRole('admin', 'request:created', populatedRequest);
     }

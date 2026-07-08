@@ -1,6 +1,46 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import { AuthRequest } from '../types';
+import { emitToAll } from '../sockets';
+
+export const createUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, email, password, role, phone, department, year, roomNumber, block, rollNo } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    // Create user without generating tokens or setting cookies
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: role || 'student',
+      phone,
+      department,
+      year,
+      roomNumber,
+      block,
+      rollNo,
+    });
+
+    const userResponse = user.toObject();
+    delete (userResponse as any).password;
+
+    // Emit event for real-time updates
+    emitToAll('user:created', userResponse);
+
+    res.status(201).json({
+      success: true,
+      data: userResponse,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -29,6 +69,9 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
+    // Emit event for real-time updates
+    emitToAll('user:updated', updatedUser);
+
     res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
     next(error);
@@ -77,6 +120,8 @@ export const updateUserStatus = async (req: AuthRequest, res: Response, next: Ne
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    emitToAll('user:updated', user);
+
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
@@ -96,6 +141,8 @@ export const updateUserRole = async (req: AuthRequest, res: Response, next: Next
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    emitToAll('user:updated', user);
+
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     next(error);
@@ -108,6 +155,7 @@ export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunc
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    emitToAll('user:deleted', { id: req.params.id });
     res.status(200).json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     next(error);

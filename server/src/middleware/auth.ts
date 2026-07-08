@@ -23,6 +23,12 @@ export const protect = async (
       role: decoded.role,
     };
 
+    // Check Maintenance Mode
+    const settings = await import('../models/Settings').then(m => m.default.findOne());
+    if (settings?.maintenanceMode && req.user.role !== 'admin') {
+      return next(new AppError('The system is currently under maintenance. Please try again later.', 403));
+    }
+
     next();
   } catch (error) {
     return next(new AppError('Not authorized. Invalid token.', 401));

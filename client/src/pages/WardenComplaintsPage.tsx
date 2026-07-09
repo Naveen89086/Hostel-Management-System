@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { Spinner } from '../components/ui/Spinner';
 import * as requestService from '../services/request.service';
 import { Request, User } from '../types';
@@ -8,6 +9,7 @@ import { ClipboardList, Filter, Check, Eye, X, Building, AlertTriangle } from 'l
 
 export const WardenComplaintsPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [complaints, setComplaints] = useState<Request[]>([]);
   const [filteredComplaints, setFilteredComplaints] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +22,17 @@ export const WardenComplaintsPage: React.FC = () => {
   useEffect(() => {
     fetchComplaints();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEvent = () => fetchComplaints();
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+    };
+  }, [socket]);
 
   useEffect(() => {
     filterByBlock();
@@ -42,14 +55,44 @@ export const WardenComplaintsPage: React.FC = () => {
     }
   };
 
+  const getNormalizedBlockAndRoom = (c: Request) => {
+    const u = typeof c.user === 'object' ? (c.user as User) : null;
+    let block = u?.block || '';
+    let room = u?.roomNumber || c.roomNumber || '-';
+
+    if (room === '-' || room === 'Not Assigned') {
+      return { block, room };
+    }
+
+    // Extract block from room if it exists (e.g. "B-102" -> block "B", room "102")
+    if (room.includes('-')) {
+      const parts = room.split('-');
+      if (!block) block = parts[0];
+      room = parts[1];
+    } else if (/^[a-zA-Z]/.test(room)) {
+      // e.g. "A101" -> block "A", room "101"
+      if (!block) block = room.charAt(0).toUpperCase();
+      room = room.substring(1).replace(/^[-\s]+/, '');
+    }
+
+    return { block, room };
+  };
+
   const filterByBlock = () => {
     const blockFiltered = complaints.filter((c) => {
-      const room = c.roomNumber || '';
-      if (selectedBlock === 'A') {
-        return room.startsWith('A') || room.startsWith('1') || room.startsWith('3') || (!room.startsWith('B'));
-      } else {
-        return room.startsWith('B') || room.startsWith('2') || room.startsWith('5');
+      const { block, room } = getNormalizedBlockAndRoom(c);
+      
+      // If student has no block and no room, show their complaint in all blocks so it doesn't get lost
+      if (!block && (room === '-' || room === 'Not Assigned')) return true;
+
+      // Also if block is completely unknown, we shouldn't hide it
+      if (!block && room) {
+        // Fallback: If no block is known but there is a room number, 
+        // we can try to guess or just show it in all to avoid losing it.
+        return true; 
       }
+
+      return block === selectedBlock;
     });
     setFilteredComplaints(blockFiltered);
   };
@@ -103,6 +146,13 @@ export const WardenComplaintsPage: React.FC = () => {
       case 'medium': return 'text-yellow-500';
       default: return 'text-green-500';
     }
+  };
+
+  const getRoomDisplay = (c: Request) => {
+    const { block, room } = getNormalizedBlockAndRoom(c);
+    if (room === '-' || room === 'Not Assigned') return room;
+    if (block) return `${block}-${room}`;
+    return room;
   };
 
   if (user?.role !== 'warden') {
@@ -185,7 +235,7 @@ export const WardenComplaintsPage: React.FC = () => {
                 <tbody className="divide-y divide-slate-50">
                   {filteredComplaints.map((c) => (
                     <tr key={c._id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 sm:px-8 py-5 font-medium">{c.roomNumber || '-'}</td>
+                      <td className="px-6 sm:px-8 py-5 font-medium">{getRoomDisplay(c)}</td>
                       <td className="px-6 sm:px-8 py-5">
                         <div className="font-semibold text-slate-800">{c.title}</div>
                         <div className="text-xs text-slate-400 mt-0.5">By: {getAuthorName(c)}</div>
@@ -261,7 +311,7 @@ export const WardenComplaintsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Room Number</label>
-                  <p className="text-base font-semibold text-slate-800 mt-1">{selectedComplaint.roomNumber || '-'}</p>
+                  <p className="text-base font-semibold text-slate-800 mt-1">{getRoomDisplay(selectedComplaint)}</p>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</label>

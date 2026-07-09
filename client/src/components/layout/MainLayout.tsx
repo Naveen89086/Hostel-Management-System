@@ -36,7 +36,7 @@ export const MainLayout: React.FC = () => {
         </main>
       </div>
       
-      {/* Floating Chat Widget available globally in layout */}
+      {/* Floating Chat Widget available globally in layout for all portals */}
       <FloatingChatWidget />
 
       {/* Modals available to students */}

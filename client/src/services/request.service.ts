@@ -25,3 +25,8 @@ export const getRequestStats = async (): Promise<ApiResponse<RequestStats>> => {
   const response = await api.get<ApiResponse<RequestStats>>('/requests/stats');
   return response.data;
 };
+
+export const deleteRequest = async (id: string): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(`/requests/${id}`);
+  return response.data;
+};

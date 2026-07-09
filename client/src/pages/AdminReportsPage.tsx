@@ -139,7 +139,7 @@ export const AdminReportsPage: React.FC = () => {
 
       sheet.columns.forEach((column) => {
         let maxColumnLength = 0;
-        column.eachCell({ includeEmpty: true }, (cell) => {
+        column?.eachCell?.({ includeEmpty: true }, (cell: any) => {
           let columnLength = cell.value ? cell.value.toString().length : 0;
           if (columnLength > 50) columnLength = 50; 
           if (columnLength > maxColumnLength) {

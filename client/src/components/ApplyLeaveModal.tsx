@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Send } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 import * as requestService from '../services/request.service';
 
 interface ApplyLeaveModalProps {
@@ -9,6 +10,7 @@ interface ApplyLeaveModalProps {
 }
 
 export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -67,6 +69,32 @@ export const ApplyLeaveModal: React.FC<ApplyLeaveModalProps> = ({ isOpen, onClos
         {/* Body */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Student Name */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Student Name</label>
+                <input
+                  type="text"
+                  value={user?.name || ''}
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-800 cursor-not-allowed opacity-80"
+                />
+              </div>
+
+              {/* Room Number */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Room Number</label>
+                <input
+                  type="text"
+                  value={user?.roomNumber || 'Not Assigned'}
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-sm text-slate-800 cursor-not-allowed opacity-80"
+                />
+              </div>
+            </div>
             
             {/* Start Date */}
             <div className="space-y-1.5">

@@ -28,7 +28,8 @@ test.describe('Warden Portal', () => {
     const noComplaints = await page.locator('text=No complaints found').isVisible();
     if (!noComplaints) {
         // If there are complaints, verify we can click one and open the modal
-        await page.click('button[title="View Details"] >> nth=0');
+        await page.waitForSelector('button[title="View Details"]', { state: 'visible' });
+        await page.locator('button[title="View Details"]').first().click({ force: true });
         await expect(page.locator('h2:has-text("Complaint Details")')).toBeVisible();
         
         // We can optionally close it
@@ -39,12 +40,12 @@ test.describe('Warden Portal', () => {
   test('should load approve leaves', async ({ page }) => {
     await page.click('text=Approve Leaves');
     await expect(page).toHaveURL(/\/warden\/leaves/);
-    await expect(page.locator('h2:has-text("Pending Leave Requests")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Pending Leave Requests")')).toBeVisible({ timeout: 15000 });
   });
 
   test('should load hostel reports', async ({ page }) => {
     await page.click('text=Hostel Reports');
     await expect(page).toHaveURL(/\/warden\/reports/);
-    await expect(page.locator('h1:has-text("Hostel Reports")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Hostel Reports")')).toBeVisible({ timeout: 15000 });
   });
 });

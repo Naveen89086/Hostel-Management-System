@@ -9,9 +9,7 @@ import { toast } from 'react-hot-toast';
 import * as requestService from '../services/request.service';
 import * as userService from '../services/user.service';
 import { User } from '../types';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
-} from 'recharts';
+import { DynamicDashboardChart } from '../components/ui/DynamicDashboardChart';
 
 const STATUS_COLORS = {
   total: '#3B82F6',
@@ -106,7 +104,7 @@ export const AdminDashboardPage: React.FC = () => {
             id: req._id,
             time: formattedTime,
             student: student?.name || 'Unknown',
-            location: req.description || 'GPS Denied/Unavailable',
+            location: req.description || 'Location not available',
             status: req.status === 'resolved' ? 'Resolved' : 'Active',
           };
         });
@@ -133,60 +131,7 @@ export const AdminDashboardPage: React.FC = () => {
     return <div className="p-12 text-center text-red-500 font-medium">Access Denied. Admins and Wardens only.</div>;
   }
 
-  // --- Data Preparation for Recharts ---
 
-  // 1. Enterprise Monthly Trends
-  const getLast6Months = () => {
-    const result = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      result.push(d.toLocaleString('en-US', { month: 'short' }));
-    }
-    return result;
-  };
-
-  const months = getLast6Months();
-  const monthlyData = months.map(m => ({ 
-    name: m, 
-    Total: 0, 
-    Resolved: 0, 
-    Pending: 0, 
-    InProgress: 0, 
-    Rejected: 0,
-    Students: 0
-  }));
-
-  allRequests.forEach(r => {
-    const d = new Date(r.createdAt || Date.now());
-    const mStr = d.toLocaleString('en-US', { month: 'short' });
-    const idx = monthlyData.findIndex(m => m.name === mStr);
-    if (idx !== -1) {
-      monthlyData[idx].Total++;
-      if (r.status === 'resolved') monthlyData[idx].Resolved++;
-      else if (r.status === 'pending') monthlyData[idx].Pending++;
-      else if (r.status === 'in_progress') monthlyData[idx].InProgress++;
-      else if (r.status === 'rejected') monthlyData[idx].Rejected++;
-    }
-  });
-
-  allStudents.forEach(s => {
-    const d = new Date(s.createdAt || Date.now());
-    const mStr = d.toLocaleString('en-US', { month: 'short' });
-    const idx = monthlyData.findIndex(m => m.name === mStr);
-    if (idx !== -1) {
-      // Create a cumulative sum logic if required, but for registration per month:
-      monthlyData[idx].Students++;
-    }
-  });
-
-  // Calculate cumulative students for better visualization
-  let runningStudentTotal = allStudents.length;
-  for (let i = monthlyData.length - 1; i >= 0; i--) {
-    const registeredThatMonth = monthlyData[i].Students;
-    monthlyData[i].Students = runningStudentTotal;
-    runningStudentTotal -= registeredThatMonth;
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
@@ -305,54 +250,7 @@ export const AdminDashboardPage: React.FC = () => {
 
         {/* --- ENTERPRISE ANALYTICS DASHBOARD --- */}
         <div className="mt-10 mb-6">
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-            <h2 className="text-xl font-bold text-slate-800 mb-8 border-b border-slate-200 pb-3">Enterprise Analytics (Last 6 Months)</h2>
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height={450}>
-                <LineChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} dy={10} />
-                  
-                  {/* Primary Y-Axis for Complaints */}
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} allowDecimals={false} dx={-10} />
-                  
-                  {/* Secondary Y-Axis for Students */}
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#8b5cf6', fontWeight: 500 }} allowDecimals={false} dx={10} />
-                  
-                  <RechartsTooltip 
-                    contentStyle={{ 
-                      borderRadius: '16px', 
-                      border: '1px solid rgba(255, 255, 255, 0.2)', 
-                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(8px)',
-                      padding: '12px 16px'
-                    }} 
-                    itemStyle={{ fontWeight: 600 }}
-                  />
-                  
-                  <Legend 
-                    verticalAlign="top" 
-                    height={50} 
-                    iconType="circle" 
-                    wrapperStyle={{ fontSize: '13px', fontWeight: 500, paddingBottom: '20px' }} 
-                  />
-                  
-                  {/* Complaint Lines mapping to Left Y-Axis */}
-                  <Line yAxisId="left" type="monotone" dataKey="Total" name="Total Complaints" stroke={STATUS_COLORS.total} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.total, strokeWidth: 2 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="Resolved" stroke={STATUS_COLORS.resolved} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.resolved, strokeWidth: 2 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="Pending" stroke={STATUS_COLORS.pending} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.pending, strokeWidth: 2 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="InProgress" name="In Progress" stroke={STATUS_COLORS.inProgress} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.inProgress, strokeWidth: 2 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="Rejected" stroke={STATUS_COLORS.rejected} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.rejected, strokeWidth: 2 }} />
-                  
-                  {/* Students Line mapping to Right Y-Axis */}
-                  <Line yAxisId="right" type="monotone" dataKey="Students" name="Total Students" stroke={STATUS_COLORS.students} strokeWidth={3} strokeDasharray="5 5" dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.students, strokeWidth: 2 }} />
-                  
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <DynamicDashboardChart requests={allRequests} students={allStudents} />
         </div>
       </div>
     </div>

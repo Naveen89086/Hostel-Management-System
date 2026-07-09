@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Search, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { Badge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
 import * as requestService from '../services/request.service';
@@ -10,6 +11,7 @@ import { toast } from 'react-hot-toast';
 
 export const RequestsPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +28,17 @@ export const RequestsPage: React.FC = () => {
   useEffect(() => {
     fetchRequests();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEvent = () => fetchRequests();
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+    };
+  }, [socket]);
 
   const fetchRequests = async () => {
     try {

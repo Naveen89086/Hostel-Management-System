@@ -30,7 +30,7 @@ export const getRequests = async (
 
     const [requests, total] = await Promise.all([
       RequestModel.find(filter)
-        .populate('user', 'name email roomNumber')
+        .populate('user', 'name email roomNumber block')
         .populate('assignedTo', 'name email')
         .skip(skip)
         .limit(limit)
@@ -103,7 +103,7 @@ export const createRequest = async (
 
     const populatedRequest = await RequestModel.findById(request._id).populate(
       'user',
-      'name email roomNumber'
+      'name email roomNumber block'
     );
 
     // Emit to wardens and admins
@@ -145,7 +145,7 @@ export const updateRequest = async (
     await request.save();
 
     const updatedRequest = await RequestModel.findById(request._id)
-      .populate('user', 'name email')
+      .populate('user', 'name email roomNumber block')
       .populate('assignedTo', 'name email');
 
     // Emit to request owner, wardens, and admins

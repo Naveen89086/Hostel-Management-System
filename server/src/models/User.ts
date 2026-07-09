@@ -31,7 +31,13 @@ const userSchema = new Schema<IUser>(
     block: { type: String },
     roomNumber: { type: String },
     rollNo: { type: String },
+    registrationNumber: { type: String },
     phone: { type: String },
+    gender: { 
+      type: String, 
+      enum: ['Male', 'Female', 'Other'],
+      default: 'Other'
+    },
     department: { type: String },
     year: { type: Number },
     avatar: { type: String },

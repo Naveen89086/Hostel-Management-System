@@ -4,6 +4,9 @@ export interface User {
   email: string;
   role: 'student' | 'warden' | 'admin';
   roomNumber?: string;
+  block?: string;
+  registrationNumber?: string;
+  gender?: string;
   phone?: string;
   department?: string;
   year?: number;

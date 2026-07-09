@@ -26,7 +26,15 @@ export const RegisterPage: React.FC = () => {
       const res = await register(name, email, password, role);
       if (res.success) {
         toast.success('Registration successful!');
-        navigate('/dashboard');
+        const registeredUser = res.data?.user || res.user;
+        const userRole = registeredUser?.role || role;
+        if (userRole === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (userRole === 'warden') {
+          navigate('/warden/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Registration failed');

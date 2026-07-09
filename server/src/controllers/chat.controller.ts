@@ -3,6 +3,7 @@ import { AuthRequest } from '../types';
 import ChatMessage from '../models/ChatMessage';
 import RequestModel from '../models/Request';
 import User from '../models/User';
+import Settings from '../models/Settings';
 import { parseHostelRequest } from '../services/gemini.service';
 import { AppError } from '../middleware/errorHandler';
 import { emitToRole } from '../sockets';
@@ -68,26 +69,86 @@ export const sendMessage = async (
 
     let createdRequest = null;
 
-    // If actionable, create a request
-    if (parsed.isActionable) {
-      createdRequest = await RequestModel.create({
-        user: req.user!.id,
-        type: parsed.type,
-        title: parsed.title,
-        description: parsed.description,
-        roomNumber: parsed.roomNumber || studentRoom || undefined,
-        category: parsed.category || undefined,
-        urgency: parsed.urgency,
-        aiParsed: true,
-        aiExtractedData: parsed,
-      });
+    if (!parsed.requiresConfirmation && parsed.actionName) {
+      const action = parsed.actionName;
+      const params = parsed.actionParams;
+      const userRole = req.user!.role;
 
-      // Emit to wardens and admins
-      const populatedRequest = await RequestModel.findById(
-        createdRequest._id
-      ).populate('user', 'name email roomNumber');
-      emitToRole('warden', 'request:created', populatedRequest);
-      emitToRole('admin', 'request:created', populatedRequest);
+      if (action === 'CREATE_REQUEST') {
+        createdRequest = await RequestModel.create({
+          user: req.user!.id,
+          type: parsed.type,
+          title: parsed.title,
+          description: parsed.description,
+          roomNumber: parsed.roomNumber || studentRoom || undefined,
+          category: parsed.category || undefined,
+          urgency: parsed.urgency,
+          aiParsed: true,
+          aiExtractedData: parsed,
+        });
+
+        const populatedRequest = await RequestModel.findById(createdRequest._id).populate('user', 'name email roomNumber');
+        emitToRole('warden', 'request:created', populatedRequest);
+        emitToRole('admin', 'request:created', populatedRequest);
+      } 
+      else if (action === 'APPROVE_LEAVE' || action === 'REJECT_LEAVE') {
+        if (userRole !== 'warden' && userRole !== 'admin') throw new AppError('Unauthorized AI Action', 403);
+        const reqDoc = await RequestModel.findOne({ category: 'Leave', roomNumber: params.roomNumber, status: { $in: ['pending', 'in_progress'] } });
+        if (reqDoc) {
+          reqDoc.status = action === 'APPROVE_LEAVE' ? 'resolved' : 'rejected';
+          await reqDoc.save();
+          emitToRole('warden', 'request:updated', reqDoc);
+        }
+      }
+      else if (action === 'RESOLVE_COMPLAINT' || action === 'REJECT_COMPLAINT') {
+        if (userRole !== 'warden' && userRole !== 'admin') throw new AppError('Unauthorized AI Action', 403);
+        const reqDoc = await RequestModel.findOne({ category: { $nin: ['Emergency', 'Leave'] }, roomNumber: params.roomNumber, status: { $in: ['pending', 'in_progress'] } });
+        if (reqDoc) {
+          reqDoc.status = action === 'RESOLVE_COMPLAINT' ? 'resolved' : 'rejected';
+          await reqDoc.save();
+          emitToRole('warden', 'request:updated', reqDoc);
+        }
+      }
+      else if (action === 'RESOLVE_ALERT') {
+        if (userRole !== 'warden' && userRole !== 'admin') throw new AppError('Unauthorized AI Action', 403);
+        const reqDoc = await RequestModel.findOne({ category: 'Emergency', roomNumber: params.roomNumber, status: { $ne: 'resolved' } });
+        if (reqDoc) {
+          reqDoc.status = 'resolved';
+          await reqDoc.save();
+          emitToRole('warden', 'request:updated', reqDoc);
+          emitToRole('admin', 'request:updated', reqDoc);
+        }
+      }
+      else if (action === 'ADD_WARDEN') {
+        if (userRole !== 'admin') throw new AppError('Unauthorized AI Action', 403);
+        const email = params.email || `warden_${Date.now()}@gmail.com`;
+        const existing = await User.findOne({ email });
+        if (!existing) {
+          const newWarden = await User.create({
+            name: params.studentName || 'New Warden',
+            email,
+            password: 'warden123',
+            role: 'warden'
+          });
+          emitToRole('admin', 'user:created', newWarden);
+        }
+      }
+      else if (action === 'TOGGLE_MAINTENANCE') {
+        if (userRole !== 'admin') throw new AppError('Unauthorized AI Action', 403);
+        let settings = await Settings.findOne();
+        if (!settings) settings = await Settings.create({});
+        settings.maintenanceMode = !settings.maintenanceMode;
+        await settings.save();
+      }
+      else if (action === 'CANCEL_REQUEST') {
+        if (userRole !== 'student') throw new AppError('Unauthorized AI Action', 403);
+        const reqDoc = await RequestModel.findOne({ user: req.user!.id, status: { $in: ['pending', 'in_progress'] } }).sort({ createdAt: -1 });
+        if (reqDoc) {
+          reqDoc.status = 'rejected'; // Or maybe 'cancelled', but rejected works for now
+          await reqDoc.save();
+          emitToRole('warden', 'request:updated', reqDoc);
+        }
+      }
     }
 
     // Save AI response message

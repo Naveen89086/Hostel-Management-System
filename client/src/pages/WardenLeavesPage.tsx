@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import * as requestService from '../services/request.service';
@@ -18,6 +19,7 @@ interface LeaveRequest {
 
 export const WardenLeavesPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBlock, setSelectedBlock] = useState<'A' | 'B'>('A');
@@ -25,6 +27,17 @@ export const WardenLeavesPage: React.FC = () => {
   useEffect(() => {
     fetchLeaves();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEvent = () => fetchLeaves();
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+    };
+  }, [socket]);
 
   const fetchLeaves = async () => {
     try {
@@ -49,9 +62,13 @@ export const WardenLeavesPage: React.FC = () => {
 
           const student = req.user as User;
           let block: 'A' | 'B' = 'A';
-          if (student && student.roomNumber) {
-            if (student.roomNumber.startsWith('B') || student.roomNumber.startsWith('2') || student.roomNumber.startsWith('5')) {
-              block = 'B';
+          if (student) {
+            if (student.block) {
+              block = student.block as 'A' | 'B';
+            } else if (student.roomNumber) {
+              if (student.roomNumber.startsWith('B') || student.roomNumber.startsWith('2') || student.roomNumber.startsWith('5')) {
+                block = 'B';
+              }
             }
           }
 
@@ -66,30 +83,6 @@ export const WardenLeavesPage: React.FC = () => {
           };
         });
 
-        // Add some mock data just for visual demonstration if database is empty
-        if (mappedLeaves.length === 0) {
-          mappedLeaves.push(
-            {
-              id: 'mock1',
-              studentName: 'sruthika gunjnoor',
-              startDate: '2026-05-12',
-              endDate: '2026-05-23',
-              reason: 'Sick',
-              status: 'Awaiting Parent',
-              block: 'A'
-            },
-            {
-              id: 'mock2',
-              studentName: 'sruthika gunjnoor',
-              startDate: '2026-05-13',
-              endDate: '2026-05-16',
-              reason: 'fever',
-              status: 'Awaiting Parent',
-              block: 'B'
-            }
-          );
-        }
-
         setLeaves(mappedLeaves);
       }
     } catch {
@@ -100,12 +93,6 @@ export const WardenLeavesPage: React.FC = () => {
   };
 
   const handleApprove = async (id: string) => {
-    if (id.startsWith('mock')) {
-      setLeaves(leaves.map(l => l.id === id ? { ...l, status: 'Approved' } : l));
-      toast.success('Leave request approved.');
-      return;
-    }
-
     try {
       const res = await requestService.updateRequest(id, { status: 'resolved' });
       if (res.success) {
@@ -118,12 +105,6 @@ export const WardenLeavesPage: React.FC = () => {
   };
 
   const handleReject = async (id: string) => {
-    if (id.startsWith('mock')) {
-      setLeaves(leaves.map(l => l.id === id ? { ...l, status: 'Rejected' } : l));
-      toast.success('Leave request rejected.');
-      return;
-    }
-
     try {
       const res = await requestService.updateRequest(id, { status: 'rejected' });
       if (res.success) {

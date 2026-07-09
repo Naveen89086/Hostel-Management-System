@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { AlertTriangle, MapPin, Building } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import * as requestService from '../services/request.service';
@@ -17,6 +18,7 @@ interface Alert {
 
 export const WardenAlertsPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBlock, setSelectedBlock] = useState<'A' | 'B'>('A');
@@ -24,6 +26,17 @@ export const WardenAlertsPage: React.FC = () => {
   useEffect(() => {
     fetchAlerts();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEvent = () => fetchAlerts();
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+    };
+  }, [socket]);
 
   const fetchAlerts = async () => {
     try {
@@ -37,9 +50,13 @@ export const WardenAlertsPage: React.FC = () => {
         const mappedAlerts: Alert[] = emergencyReqs.map((req: import('../types').Request) => {
           const student = req.user as User;
           let block: 'A' | 'B' = 'A';
-          if (student && student.roomNumber) {
-            if (student.roomNumber.startsWith('B') || student.roomNumber.startsWith('2') || student.roomNumber.startsWith('5')) {
-              block = 'B';
+          if (student) {
+            if (student.block) {
+              block = student.block as 'A' | 'B';
+            } else if (student.roomNumber) {
+              if (student.roomNumber.startsWith('B') || student.roomNumber.startsWith('2') || student.roomNumber.startsWith('5')) {
+                block = 'B';
+              }
             }
           }
 
@@ -50,21 +67,12 @@ export const WardenAlertsPage: React.FC = () => {
             id: req._id,
             time: formattedTime,
             student: student?.name || 'Unknown',
-            location: req.description || 'GPS Denied/Unavailable',
+            location: req.description || 'Location not available',
             status: req.status === 'resolved' ? 'Resolved' : 'Active',
             block
           };
         });
 
-        // Mock data fallback just for visual demonstration
-        if (mappedAlerts.length === 0) {
-          mappedAlerts.push(
-            { id: 'mock1', time: '12/05/2026, 14:01:37', student: 'sruthika gunjnoor', location: 'GPS Denied/Unavailable', status: 'Resolved', block: 'A' },
-            { id: 'mock2', time: '12/05/2026, 13:49:51', student: 'sruthika gunjnoor', location: 'GPS Denied/Unavailable', status: 'Resolved', block: 'A' },
-            { id: 'mock3', time: '12/05/2026, 12:56:50', student: 'sruthika gunjnoor', location: 'GPS Denied/Unavailable', status: 'Active', block: 'A' },
-            { id: 'mock4', time: '10/05/2026, 21:27:16', student: 'sruthika gunjnoor', location: 'Lat: 17.7239, Lng: 78.2562', status: 'Resolved', block: 'B' }
-          );
-        }
 
         setAlerts(mappedAlerts);
       }
@@ -76,12 +84,6 @@ export const WardenAlertsPage: React.FC = () => {
   };
 
   const handleResolve = async (id: string) => {
-    if (id.startsWith('mock')) {
-      setAlerts(alerts.map(a => a.id === id ? { ...a, status: 'Resolved' } : a));
-      toast.success('Alert marked as resolved.');
-      return;
-    }
-
     try {
       const res = await requestService.updateRequest(id, { status: 'resolved' });
       if (res.success) {

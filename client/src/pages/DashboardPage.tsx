@@ -2,60 +2,76 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, DoorOpen, Clock, Bell, Users, MessageSquareText, FileText, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import { StatCard } from '../components/ui/StatCard';
 import { Badge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
 import * as requestService from '../services/request.service';
 import * as noticeService from '../services/notice.service';
 import * as roomService from '../services/room.service';
+import * as userService from '../services/user.service';
 import { DashboardStats, Request, Notice } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentRequests, setRecentRequests] = useState<Request[]>([]);
   const [recentNotices, setRecentNotices] = useState<Notice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch available rooms, requests, notices, and students
+      const [requestsRes, noticesRes, roomsRes, studentsRes] = await Promise.all([
+        requestService.getRequests({ limit: 5 }),
+        noticeService.getNotices({ limit: 3 }),
+        roomService.getRooms(),
+        userService.getAllUsers({ role: 'student' })
+      ]);
+      
+      if (requestsRes.success) setRecentRequests(requestsRes.data || []);
+      if (noticesRes.success) setRecentNotices(noticesRes.data || []);
+      
+      const rooms = roomsRes.data || [];
+      // @ts-ignore
+      const students = studentsRes.data?.users || studentsRes.data || [];
+      
+      setStats({
+        totalRooms: rooms.length,
+        availableRooms: rooms.filter(r => r.status === 'available').length,
+        occupiedRooms: rooms.filter(r => r.status === 'occupied').length,
+        maintenanceRooms: rooms.filter(r => r.status === 'maintenance').length,
+        totalRequests: (requestsRes.data as any)?.pagination?.total || (requestsRes as any)?.count || 0,
+        // @ts-ignore
+        pendingRequests: ((requestsRes.data?.requests) || requestsRes.data || []).filter((r: any) => r.status === 'pending').length,
+        totalStudents: students.length,
+        totalNotices: noticesRes.count || 0
+      });
+
+    } catch (error) {
+      console.error("Failed to load dashboard data", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setIsLoading(true);
-        // Only fetch real stats for admins/wardens if implemented on backend, 
-        // Otherwise use mock for demo or fetch available rooms
-        const [requestsRes, noticesRes, roomsRes] = await Promise.all([
-          requestService.getRequests({ limit: 5 }),
-          noticeService.getNotices({ limit: 3 }),
-          roomService.getRooms()
-        ]);
-        
-        if (requestsRes.success) setRecentRequests(requestsRes.data || []);
-        if (noticesRes.success) setRecentNotices(noticesRes.data || []);
-        
-        // Mocking stats based on responses
-        const rooms = roomsRes.data || [];
-        setStats({
-          totalRooms: rooms.length,
-          availableRooms: rooms.filter(r => r.status === 'available').length,
-          occupiedRooms: rooms.filter(r => r.status === 'occupied').length,
-          maintenanceRooms: rooms.filter(r => r.status === 'maintenance').length,
-          totalRequests: (requestsRes.data as any)?.pagination?.total || (requestsRes as any)?.count || 0,
-          // @ts-ignore
-          pendingRequests: ((requestsRes.data?.requests) || requestsRes.data || []).filter((r: any) => r.status === 'pending').length,
-          totalStudents: 150, // Mock
-          totalNotices: noticesRes.count || 0
-        });
-
-      } catch (error) {
-        console.error("Failed to load dashboard data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleEvent = () => fetchDashboardData();
+    socket.on('request:created', handleEvent);
+    socket.on('request:updated', handleEvent);
+    return () => {
+      socket.off('request:created', handleEvent);
+      socket.off('request:updated', handleEvent);
+    };
+  }, [socket]);
 
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {

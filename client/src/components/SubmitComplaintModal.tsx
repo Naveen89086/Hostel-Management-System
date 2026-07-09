@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Send } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 import * as requestService from '../services/request.service';
 
 interface SubmitComplaintModalProps {
@@ -9,16 +10,23 @@ interface SubmitComplaintModalProps {
 }
 
 export const SubmitComplaintModal: React.FC<SubmitComplaintModalProps> = ({ isOpen, onClose }) => {
-  const [roomNumber, setRoomNumber] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const [roomNumber, setRoomNumber] = React.useState(user?.roomNumber || '');
+  const [category, setCategory] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (user?.roomNumber) {
+      setRoomNumber(user.roomNumber);
+    }
+  }, [user]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomNumber || !category || !description) {
+    if (!category || !description) {
       toast.error('Please fill in all required fields.');
       return;
     }
@@ -29,7 +37,7 @@ export const SubmitComplaintModal: React.FC<SubmitComplaintModalProps> = ({ isOp
         type: 'complaint',
         title: `${category} Issue`,
         description,
-        roomNumber,
+        roomNumber: roomNumber || 'Not Assigned',
         category,
         urgency: 'medium', // Default urgency for standard complaints
       });
@@ -68,16 +76,27 @@ export const SubmitComplaintModal: React.FC<SubmitComplaintModalProps> = ({ isOp
         {/* Body */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+            {/* Student Name */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">Student Name</label>
+              <input
+                type="text"
+                value={user?.name || 'Not Assigned'}
+                readOnly
+                disabled
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm text-slate-800 bg-slate-100 cursor-not-allowed opacity-80"
+              />
+            </div>
+
             {/* Room Number */}
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Room Number</label>
               <input
                 type="text"
-                value={roomNumber}
-                onChange={(e) => setRoomNumber(e.target.value)}
-                placeholder="304"
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm text-slate-800 bg-slate-50"
+                value={roomNumber || 'Not Assigned'}
+                readOnly
+                disabled
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm text-slate-800 bg-slate-100 cursor-not-allowed opacity-80"
               />
             </div>
 

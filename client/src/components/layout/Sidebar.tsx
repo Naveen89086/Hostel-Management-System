@@ -45,7 +45,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
 
   const studentLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/chat', icon: MessageSquareText, label: 'AI Chat', highlight: true },
     { to: '/activity', icon: FileText, label: 'My Activity' },
     { to: '/requests', icon: ClipboardList, label: 'Submit Complaint' },
     { to: '/apply-leave', icon: CheckSquare, label: 'Apply Leave' },

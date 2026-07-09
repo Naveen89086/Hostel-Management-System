@@ -5,7 +5,7 @@ import { emitToAll } from '../sockets';
 
 export const createUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, email, password, role, phone, department, year, roomNumber, block, rollNo } = req.body;
+    const { name, email, password, role, phone, gender, registrationNumber, department, year, roomNumber, block, rollNo } = req.body;
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
@@ -20,6 +20,8 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
       password,
       role: role || 'student',
       phone,
+      gender,
+      registrationNumber,
       department,
       year,
       roomNumber,

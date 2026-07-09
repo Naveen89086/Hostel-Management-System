@@ -83,7 +83,7 @@ export const AdminWardensPage: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\\.com$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     
     if (!formData.emailId.trim() || !emailRegex.test(formData.emailId)) newErrors.emailId = 'Invalid Email Id. Please enter a valid Email Id.';
     

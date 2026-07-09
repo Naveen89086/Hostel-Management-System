@@ -25,6 +25,8 @@ export const AdminUsersPage: React.FC = () => {
     password: '',
     fullName: '',
     rollNumber: '',
+    mobileNumber: '',
+    gender: 'Male',
     block: '',
     roomNumber: '',
     branch: ''
@@ -98,6 +100,10 @@ export const AdminUsersPage: React.FC = () => {
     
     if (!formData.rollNumber.trim() || !/^\d+$/.test(formData.rollNumber)) newErrors.rollNumber = 'Invalid Roll Number. Please enter a valid Roll Number.';
     
+    if (!formData.mobileNumber.trim() || !/^\d{10}$/.test(formData.mobileNumber)) newErrors.mobileNumber = 'Invalid Mobile Number. Please enter a 10-digit number.';
+
+    if (!formData.gender) newErrors.gender = 'Please select a gender.';
+    
     if (!formData.block) newErrors.block = 'Invalid Block. Please enter a valid Block.';
     
     if (!formData.roomNumber.trim() || !/^\d+$/.test(formData.roomNumber)) newErrors.roomNumber = 'Invalid Room Number. Please enter a valid Room Number.';
@@ -119,6 +125,9 @@ export const AdminUsersPage: React.FC = () => {
         email: formData.emailId,
         password: formData.password,
         role: 'student',
+        phone: formData.mobileNumber,
+        gender: formData.gender,
+        registrationNumber: formData.rollNumber,
         block: formData.block,
         roomNumber: `${formData.block}-${formData.roomNumber}`,
         department: formData.branch,
@@ -148,7 +157,7 @@ export const AdminUsersPage: React.FC = () => {
         toast.success(`Student added to Block ${formData.block} successfully!`);
         
         // Reset and close
-        setFormData({ emailId: '', password: '', fullName: '', rollNumber: '', block: '', roomNumber: '', branch: '' });
+        setFormData({ emailId: '', password: '', fullName: '', rollNumber: '', mobileNumber: '', gender: 'Male', block: '', roomNumber: '', branch: '' });
         setErrors({});
         setIsModalOpen(false);
       }
@@ -217,7 +226,7 @@ export const AdminUsersPage: React.FC = () => {
             <button 
               onClick={() => {
                 setErrors({});
-                setFormData({ emailId: '', password: '', fullName: '', rollNumber: '', block: selectedBlock, roomNumber: '', branch: '' });
+                setFormData({ emailId: '', password: '', fullName: '', rollNumber: '', mobileNumber: '', gender: 'Male', block: selectedBlock, roomNumber: '', branch: '' });
                 setIsModalOpen(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -351,6 +360,39 @@ export const AdminUsersPage: React.FC = () => {
                     placeholder="101"
                   />
                   {errors.rollNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.rollNumber}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mobile Number</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formData.mobileNumber}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d+$/.test(val)) {
+                        setFormData({...formData, mobileNumber: val});
+                      }
+                    }}
+                    className={`w-full px-4 py-2.5 bg-slate-50 border rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.mobileNumber ? 'border-red-400' : 'border-slate-200'}`}
+                    placeholder="9876543210"
+                    maxLength={10}
+                  />
+                  {errors.mobileNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.mobileNumber}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                    className={`w-full px-4 py-2.5 bg-slate-50 border rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.gender ? 'border-red-400' : 'border-slate-200'}`}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {errors.gender && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gender}</p>}
                 </div>
 
                 <div>

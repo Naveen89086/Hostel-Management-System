@@ -38,10 +38,12 @@ export const LoginPage: React.FC = () => {
       const res = await login(email, password);
       if (res.success) {
         toast.success('Welcome back!');
-        // Redirect based on role
-        if (selectedRole === 'admin') {
+        // Redirect based on actual user role from response, fallback to selected role
+        const loggedInUser = res.data?.user || res.user;
+        const userRole = loggedInUser?.role || selectedRole;
+        if (userRole === 'admin') {
           navigate('/admin/dashboard');
-        } else if (selectedRole === 'warden') {
+        } else if (userRole === 'warden') {
           navigate('/warden/dashboard');
         } else {
           navigate('/dashboard');

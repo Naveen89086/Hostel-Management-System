@@ -6,11 +6,9 @@ import { Folder, Clock, CheckCircle, Building, ClipboardList, Check, Eye, X, Ale
 import * as requestService from '../services/request.service';
 import { Request, User } from '../types';
 import { toast } from 'react-hot-toast';
+import { DynamicDashboardChart } from '../components/ui/DynamicDashboardChart';
 
 import * as userService from '../services/user.service';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
-} from 'recharts';
 
 const STATUS_COLORS = {
   total: '#3B82F6',
@@ -87,12 +85,15 @@ export const WardenDashboardPage: React.FC = () => {
 
   // Filter complaints by block
   const blockComplaints = allComplaints.filter((c) => {
-    const room = c.roomNumber || '';
-    if (selectedBlock === 'A') {
-      return room.startsWith('A') || room.startsWith('1') || room.startsWith('3') || (!room.startsWith('B'));
-    } else {
-      return room.startsWith('B') || room.startsWith('2') || room.startsWith('5');
-    }
+    const userBlock = (typeof c.user === 'object' && c.user !== null) ? c.user.block : undefined;
+    const room = (typeof c.user === 'object' && c.user !== null) ? (c.user.roomNumber || '') : (c.roomNumber || '');
+    
+    // If no block and no recognizable room, show in all views so it's not lost
+    if (!userBlock && (!room || room === 'Not Assigned' || room === '-')) return true;
+
+    // Fallback to room prefix if block is undefined
+    const blockMatch = userBlock ? userBlock === selectedBlock : room.startsWith(selectedBlock);
+    return blockMatch;
   });
 
   const handleResolve = async (id: string) => {
@@ -140,43 +141,6 @@ export const WardenDashboardPage: React.FC = () => {
     );
   }
 
-  // --- Data Preparation for Recharts ---
-
-  // 1. Monthly Complaint Trends
-  const getLast6Months = () => {
-    const result = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      result.push(d.toLocaleString('en-US', { month: 'short' }));
-    }
-    return result;
-  };
-
-  const months = getLast6Months();
-  const monthlyData = months.map(m => ({ 
-    name: m, 
-    Total: 0, 
-    Resolved: 0, 
-    Pending: 0, 
-    InProgress: 0, 
-    Rejected: 0 
-  }));
-
-  allComplaints.forEach(r => {
-    const d = new Date(r.createdAt || Date.now());
-    const mStr = d.toLocaleString('en-US', { month: 'short' });
-    const idx = monthlyData.findIndex(m => m.name === mStr);
-    
-    if (idx !== -1) {
-      monthlyData[idx].Total++;
-      if (r.status === 'resolved') monthlyData[idx].Resolved++;
-      else if (r.status === 'pending') monthlyData[idx].Pending++;
-      else if (r.status === 'in_progress') monthlyData[idx].InProgress++;
-      else if (r.status === 'rejected') monthlyData[idx].Rejected++;
-    }
-  });
-
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
@@ -215,133 +179,11 @@ export const WardenDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Block Selector */}
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-slate-500" />
-          <span className="text-sm font-semibold text-slate-600 mr-2">Select Block:</span>
-          <button
-            onClick={() => setSelectedBlock('A')}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-              selectedBlock === 'A' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >Block A</button>
-          <button
-            onClick={() => setSelectedBlock('B')}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-              selectedBlock === 'B' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >Block B</button>
-        </div>
 
-        {/* Recent Complaints Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 sm:px-8 border-b border-slate-100">
-            <div className="flex items-center gap-3 text-slate-800">
-              <ClipboardList className="h-6 w-6" />
-              <h2 className="text-lg font-extrabold">Recent Complaints — Block {selectedBlock}</h2>
-            </div>
-          </div>
-
-          {blockComplaints.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-700">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-6 sm:px-8 py-5 text-xs font-bold text-slate-400 tracking-wider uppercase">Room No.</th>
-                    <th className="px-6 sm:px-8 py-5 text-xs font-bold text-slate-400 tracking-wider uppercase">Description</th>
-                    <th className="px-6 sm:px-8 py-5 text-xs font-bold text-slate-400 tracking-wider uppercase">Priority</th>
-                    <th className="px-6 sm:px-8 py-5 text-xs font-bold text-slate-400 tracking-wider uppercase">Status</th>
-                    <th className="px-6 sm:px-8 py-5 text-xs font-bold text-slate-400 tracking-wider uppercase text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {blockComplaints.map((c) => (
-                    <tr key={c._id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 sm:px-8 py-5 font-medium">{c.roomNumber || '-'}</td>
-                      <td className="px-6 sm:px-8 py-5">
-                        <div className="font-semibold text-slate-800">{c.title}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">By: {getAuthorName(c)}</div>
-                        <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded">
-                          <AlertTriangle className="h-3 w-3" /> Repeated
-                        </span>
-                      </td>
-                      <td className="px-6 sm:px-8 py-5">
-                        <div className="font-bold text-slate-800 capitalize">{getCategoryLabel(c)}</div>
-                        <span className={`text-xs font-semibold capitalize ${getPriorityColor(c.urgency)}`}>{c.urgency} Priority</span>
-                      </td>
-                      <td className="px-6 sm:px-8 py-5">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          c.status === 'resolved' ? 'bg-green-50 text-green-600'
-                            : c.status === 'rejected' ? 'bg-red-50 text-red-600'
-                            : 'bg-yellow-50 text-yellow-600'
-                        }`}>
-                          {c.status === 'in_progress' ? 'Pending' : (c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown')}
-                        </span>
-                      </td>
-                      <td className="px-6 sm:px-8 py-5">
-                        <div className="flex items-center justify-center gap-2">
-                          {(c.status === 'pending' || c.status === 'in_progress') && (
-                            <button onClick={() => handleResolve(c._id)} className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors" title="Mark as Resolved">
-                              <Check className="h-5 w-5" />
-                            </button>
-                          )}
-                          <button onClick={() => setSelectedComplaint(c)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="View Details">
-                            <Eye className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="p-12 text-center text-slate-400">
-              <ClipboardList className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-              <p className="font-medium text-slate-500">No complaints in Block {selectedBlock}.</p>
-            </div>
-          )}
-        </div>
 
         {/* --- ENTERPRISE ANALYTICS DASHBOARD --- */}
         <div className="mt-10 mb-6">
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-            <h2 className="text-xl font-bold text-slate-800 mb-8 border-b border-slate-200 pb-3">Hostel-Wide Analytics (Last 6 Months)</h2>
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 500 }} allowDecimals={false} dx={-10} />
-                  
-                  <RechartsTooltip 
-                    contentStyle={{ 
-                      borderRadius: '16px', 
-                      border: '1px solid rgba(255, 255, 255, 0.2)', 
-                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(8px)',
-                      padding: '12px 16px'
-                    }} 
-                    itemStyle={{ fontWeight: 600 }}
-                  />
-                  
-                  <Legend 
-                    verticalAlign="top" 
-                    height={50} 
-                    iconType="circle" 
-                    wrapperStyle={{ fontSize: '13px', fontWeight: 500, paddingBottom: '20px' }} 
-                  />
-                  
-                  <Line type="monotone" dataKey="Total" stroke={STATUS_COLORS.total} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.total, strokeWidth: 2 }} />
-                  <Line type="monotone" dataKey="Resolved" stroke={STATUS_COLORS.resolved} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.resolved, strokeWidth: 2 }} />
-                  <Line type="monotone" dataKey="Pending" stroke={STATUS_COLORS.pending} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.pending, strokeWidth: 2 }} />
-                  <Line type="monotone" dataKey="InProgress" name="In Progress" stroke={STATUS_COLORS.inProgress} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.inProgress, strokeWidth: 2 }} />
-                  <Line type="monotone" dataKey="Rejected" stroke={STATUS_COLORS.rejected} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, stroke: STATUS_COLORS.rejected, strokeWidth: 2 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <DynamicDashboardChart requests={allComplaints} />
         </div>
 
       </div>

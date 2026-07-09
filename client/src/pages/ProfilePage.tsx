@@ -59,7 +59,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-6">
               <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-white p-2 shadow-sm border border-slate-100">
                 <div className="h-full w-full rounded-full bg-blue-50 flex items-center justify-center text-4xl font-bold text-blue-600 shadow-inner">
-                  {user.name.charAt(0).toUpperCase()}
+                  {(user?.name || 'U').charAt(0).toUpperCase()}
                 </div>
               </div>
               {!isEditing && (
@@ -143,8 +143,20 @@ export const ProfilePage: React.FC = () => {
                   <p className="text-sm font-semibold text-slate-500 mb-1 flex items-center gap-2"><Building2 className="h-4 w-4" /> Room Number</p>
                   <p className="font-bold text-slate-800">{user.roomNumber || 'Not assigned'}</p>
                 </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors">
+                  <p className="text-sm font-semibold text-slate-500 mb-1 flex items-center gap-2"><Building2 className="h-4 w-4" /> Hostel Block</p>
+                  <p className="font-bold text-slate-800">{user.block || 'Not assigned'}</p>
+                </div>
                 {user.role === 'student' && (
                   <>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors">
+                      <p className="text-sm font-semibold text-slate-500 mb-1 flex items-center gap-2"><UserIcon className="h-4 w-4" /> Registration Number</p>
+                      <p className="font-bold text-slate-800">{user.registrationNumber || 'Not provided'}</p>
+                    </div>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors">
+                      <p className="text-sm font-semibold text-slate-500 mb-1 flex items-center gap-2"><UserIcon className="h-4 w-4" /> Gender</p>
+                      <p className="font-bold text-slate-800 capitalize">{user.gender || 'Not provided'}</p>
+                    </div>
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors">
                       <p className="text-sm font-semibold text-slate-500 mb-1 flex items-center gap-2"><BookOpen className="h-4 w-4" /> Department</p>
                       <p className="font-bold text-slate-800">{user.department || 'Not provided'}</p>

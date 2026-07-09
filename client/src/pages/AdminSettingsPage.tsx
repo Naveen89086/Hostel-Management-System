@@ -22,8 +22,8 @@ export const AdminSettingsPage: React.FC = () => {
       const res = await settingsService.getSettings();
       if (res.success && res.data) {
         setFormData({
-          enableGlobalNotifications: res.data.enableGlobalNotifications ?? true,
-          maintenanceMode: res.data.maintenanceMode || false,
+          enableGlobalNotifications: (res.data as any).enableGlobalNotifications ?? true,
+          maintenanceMode: (res.data as any).maintenanceMode || false,
         });
       }
     } catch (error) {

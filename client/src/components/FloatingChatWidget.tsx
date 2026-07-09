@@ -87,8 +87,8 @@ export const FloatingChatWidget: React.FC = () => {
     const isAi = msg.sender === 'ai';
     return (
       <div key={msg._id || idx} className={`flex gap-2 ${isAi ? '' : 'flex-row-reverse'}`}>
-        <div className={`h-7 w-7 rounded-full flex flex-shrink-0 items-center justify-center shadow-sm ${isAi ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-          {isAi ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+        <div className={`h-7 w-7 rounded-full flex flex-shrink-0 items-center justify-center shadow-sm overflow-hidden ${isAi ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
+          {isAi ? <img src="/ai-agent-profile.png" alt="AI" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
         </div>
         
         <div className={`flex flex-col max-w-[75%] ${isAi ? 'items-start' : 'items-end'}`}>
@@ -114,8 +114,8 @@ export const FloatingChatWidget: React.FC = () => {
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center shadow-md z-10">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30 p-1">
-                <img src="/chatbot-icon.png" alt="AI" className="h-full w-full object-contain" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'; }} />
+              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30 overflow-hidden">
+                <img src="/ai-agent-profile.png" alt="AI" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML = '<svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'; }} />
               </div>
               <div>
                 <h3 className="font-bold text-sm">HostelHub Agent</h3>
@@ -147,8 +147,8 @@ export const FloatingChatWidget: React.FC = () => {
             
             {isTyping && (
               <div className="flex gap-2">
-                <div className="h-7 w-7 rounded-full bg-blue-100 text-blue-600 flex flex-shrink-0 items-center justify-center shadow-sm">
-                  <Bot className="h-4 w-4" />
+                <div className="h-7 w-7 rounded-full bg-blue-100 text-blue-600 flex flex-shrink-0 items-center justify-center shadow-sm overflow-hidden">
+                  <img src="/ai-agent-profile.png" alt="AI" className="h-full w-full object-cover" />
                 </div>
                 <div className="bg-white border border-slate-100 px-4 py-3.5 rounded-2xl rounded-tl-sm flex gap-1.5 shadow-sm items-center h-10">
                   <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -194,7 +194,7 @@ export const FloatingChatWidget: React.FC = () => {
         ) : (
           <div className="h-full w-full rounded-full overflow-hidden p-[2px]">
             <div className="h-full w-full bg-white rounded-full flex items-center justify-center overflow-hidden">
-               <img src="/chatbot-icon.png" alt="Chat" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML = '<svg class="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'; }} />
+               <img src="/ai-agent-profile.png" alt="Chat" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.parentElement!.innerHTML = '<svg class="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'; }} />
             </div>
           </div>
         )}

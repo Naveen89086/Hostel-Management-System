@@ -122,6 +122,7 @@ export const WardenLeavesPage: React.FC = () => {
 
   const filteredLeaves = leaves.filter(l => l.block === selectedBlock);
 
+  console.log('--- RENDERING WARDEN LEAVES PAGE ---');
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">

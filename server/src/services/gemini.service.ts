@@ -15,6 +15,7 @@ export interface ParsedRequest {
   urgency?: 'low' | 'medium' | 'high' | 'critical';
   description?: string;
   isActionable?: boolean;
+  roomNumber?: string;
 }
 
 const groq = new Groq({ apiKey: config.groqApiKey });

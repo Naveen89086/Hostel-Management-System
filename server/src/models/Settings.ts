@@ -4,6 +4,7 @@ export interface ISettings extends Document {
   hostelName: string;
   contactEmail: string;
   supportPhone: string;
+  enableGlobalNotifications: boolean;
   maintenanceMode: boolean;
   autoApproveLeaves: boolean;
   createdAt: Date;

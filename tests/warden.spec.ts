@@ -9,6 +9,8 @@ test.describe('Warden Portal', () => {
     await page.fill('input[type="password"]', 'warden123');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/warden\/dashboard/, { timeout: 10000 });
+    // Wait for the Warden Dashboard heading to be visible, ensuring the component is fully mounted
+    await expect(page.locator('h1:has-text("Warden Dashboard")')).toBeVisible({ timeout: 10000 });
   });
 
   test('should load dashboard and show stats', async ({ page }) => {
@@ -23,6 +25,9 @@ test.describe('Warden Portal', () => {
   test('should load manage complaints and resolve one', async ({ page }) => {
     await page.click('text=Manage Complaints');
     await expect(page).toHaveURL(/\/warden\/complaints/);
+
+    // Wait for the data to finish loading from MongoDB Atlas
+    await page.waitForTimeout(3000);
 
     // Depending on state, either we see "No complaints" or a list
     const noComplaints = await page.locator('text=No complaints found').isVisible();
@@ -44,6 +49,9 @@ test.describe('Warden Portal', () => {
   });
 
   test('should load hostel reports', async ({ page }) => {
+    page.on('console', msg => console.log(`[BROWSER CONSOLE] ${msg.text()}`));
+    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}\n${err.stack}`));
+
     await page.click('text=Hostel Reports');
     await expect(page).toHaveURL(/\/warden\/reports/);
     await expect(page.locator('h1:has-text("Hostel Reports")')).toBeVisible({ timeout: 15000 });

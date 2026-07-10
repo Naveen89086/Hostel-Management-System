@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User as UserIcon, Mail, Phone, BookOpen, GraduationCap, Building2, Save } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Spinner } from '../components/ui/Spinner';
 import * as userService from '../services/user.service';
@@ -7,6 +8,7 @@ import { toast } from 'react-hot-toast';
 
 export const ProfilePage: React.FC = () => {
   const { user, checkAuth } = useAuth();
+  const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -45,8 +47,9 @@ export const ProfilePage: React.FC = () => {
 
   if (!user) return null;
 
+  console.log('--- RENDERING PROFILE PAGE --- Pathname:', location.pathname);
   return (
-    <div className="min-h-[calc(100vh-4rem)] p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
           

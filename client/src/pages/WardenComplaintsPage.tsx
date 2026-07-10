@@ -159,6 +159,7 @@ export const WardenComplaintsPage: React.FC = () => {
     return <div className="p-12 text-center text-red-500 font-medium">Access Denied. Wardens only.</div>;
   }
 
+  console.log('--- RENDERING WARDEN COMPLAINTS PAGE ---');
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">

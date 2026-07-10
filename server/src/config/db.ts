@@ -7,7 +7,7 @@ let mongoServer: MongoMemoryServer;
 
 const connectDB = async (): Promise<void> => {
   try {
-    const conn = await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 2000 });
+    const conn = await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 10000 });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error: any) {
     console.warn(`Standard MongoDB connection failed: ${error.message}`);

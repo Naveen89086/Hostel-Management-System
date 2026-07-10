@@ -17,7 +17,9 @@ const STATUS_COLORS = {
   students: '#8B5CF6'
 };
 
-export const DynamicDashboardChart: React.FC<DynamicDashboardChartProps> = ({ requests, students = [] }) => {
+const EMPTY_ARRAY: any[] = [];
+
+export const DynamicDashboardChart: React.FC<DynamicDashboardChartProps> = ({ requests, students = EMPTY_ARRAY }) => {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
 
   const chartData = useMemo(() => {
@@ -157,7 +159,7 @@ export const DynamicDashboardChart: React.FC<DynamicDashboardChartProps> = ({ re
       </div>
       
       <div className="flex-1 w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="99%" debounce={1}>
           <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
             <defs>
               <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">

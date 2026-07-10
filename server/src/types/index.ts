@@ -12,6 +12,8 @@ export interface IUser extends Document {
   block?: string;
   roomNumber?: string;
   rollNo?: string;
+  registrationNumber?: string;
+  gender?: 'Male' | 'Female' | 'Other';
   phone?: string;
   department?: string;
   year?: number;

@@ -19,17 +19,23 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let newSocket: Socket | null = null;
 
     if (isAuthenticated && user) {
-      newSocket = io(window.location.origin, {
+      // Extract backend domain from VITE_API_URL, fallback to window.location.origin
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const socketUrl = apiUrl ? apiUrl.replace(/\/api\/?$/, '') : window.location.origin;
+
+      newSocket = io(socketUrl, {
         path: '/socket.io/',
         withCredentials: true,
       });
 
       newSocket.on('connect', () => {
+        console.log('--- SOCKET CONNECTED --- ID:', newSocket?.id);
         setIsConnected(true);
         newSocket?.emit('authenticate', user._id);
       });
 
-      newSocket.on('disconnect', () => {
+      newSocket.on('disconnect', (reason) => {
+        console.log('--- SOCKET DISCONNECTED --- Reason:', reason);
         setIsConnected(false);
       });
 

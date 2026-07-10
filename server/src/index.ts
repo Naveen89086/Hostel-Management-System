@@ -27,8 +27,20 @@ initializeSocket(server);
 
 // Middleware
 app.use(helmet());
+// CORS configuration to support localhost, clientUrl, and Vercel preview domains dynamically
+const allowedOrigins = [config.clientUrl, 'http://localhost:5173'];
 app.use(cors({
-  origin: config.nodeEnv === 'production' ? config.clientUrl : true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app') || 
+                      origin.startsWith('http://localhost:');
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
   credentials: true,
 }));
 app.use(cookieParser());

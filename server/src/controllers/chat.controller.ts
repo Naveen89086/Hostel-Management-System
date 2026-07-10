@@ -51,7 +51,7 @@ export const sendMessage = async (
       .limit(8);
       
     const chatHistory = history.reverse().map(msg => ({
-      role: msg.sender === 'ai' ? 'assistant' : 'user',
+      role: (msg.sender === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: msg.message
     }));
 

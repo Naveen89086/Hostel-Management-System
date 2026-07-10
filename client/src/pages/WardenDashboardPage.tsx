@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { Spinner } from '../components/ui/Spinner';
@@ -23,6 +24,8 @@ const COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4'
 export const WardenDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { socket } = useSocket();
+  const location = useLocation();
+  console.log('--- RENDERING WARDEN DASHBOARD PAGE --- Pathname:', location.pathname);
   const [isLoading, setIsLoading] = useState(true);
   const [allComplaints, setAllComplaints] = useState<Request[]>([]);
   const [allStudents, setAllStudents] = useState<User[]>([]);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { SubmitComplaintModal } from '../SubmitComplaintModal';
@@ -8,6 +8,7 @@ import { SOSEmergencyModal } from '../SOSEmergencyModal';
 import { FloatingChatWidget } from '../FloatingChatWidget';
 
 export const MainLayout: React.FC = () => {
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
